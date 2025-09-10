@@ -8,19 +8,13 @@ pipeline {
     }
 
     stages {
-        // =========================
-        // Checkout Code
-        // =========================
         stage('Checkout Code') {
             steps {
                 git branch: 'master', url: 'https://github.com/krihnan/Jenkins-Project.git'
             }
         }
 
-        // =========================
-        // Build Frontend Image
-        // =========================
-        stage('Frontend - Build Docker Image') {
+        stage('Build Frontend Image') {
             steps {
                 dir('frontend') {
                     sh "docker build -t ${FRONTEND_REPO}:${IMAGE_TAG} ."
@@ -28,10 +22,7 @@ pipeline {
             }
         }
 
-        // =========================
-        // Build Backend Image
-        // =========================
-        stage('Backend - Build Docker Image') {
+        stage('Build Backend Image') {
             steps {
                 dir('backend') {
                     sh "docker build -t ${BACKEND_REPO}:${IMAGE_TAG} ."
@@ -39,9 +30,6 @@ pipeline {
             }
         }
 
-        // =========================
-        // Docker Hub Login
-        // =========================
         stage('Login to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -50,9 +38,6 @@ pipeline {
             }
         }
 
-        // =========================
-        // Push Images to Docker Hub
-        // =========================
         stage('Push Docker Images') {
             steps {
                 sh """
@@ -68,21 +53,21 @@ pipeline {
             }
         }
 
-        // =========================
-        // Deploy with Docker Compose
-        // =========================
         stage('Deploy Containers') {
             steps {
                 sh '''
-                # Stop existing containers, remove volumes & orphans
-                docker compose down --volumes --remove-orphans || true
+                # Remove any existing containers safely
+                docker rm -f frontend-container backend-container mysql-container mongo-container || true
+
+                # Remove unused networks
+                docker network prune -f
 
                 # Pull latest images
                 docker pull ${FRONTEND_REPO}:latest
                 docker pull ${BACKEND_REPO}:latest
 
-                # Start containers
-                docker compose up -d
+                # Start everything with docker-compose
+                docker compose up -d --remove-orphans
                 '''
             }
         }
