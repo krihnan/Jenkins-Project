@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -5,9 +6,6 @@ pipeline {
         FRONTEND_REPO = 'navaneethakrishna/frontend-app'
         BACKEND_REPO  = 'navaneethakrishna/backend-app'
         IMAGE_TAG     = "${env.GIT_COMMIT.take(7)}"  // short commit hash
-
-        DOCKER_CLIENT_TIMEOUT = '300'
-        COMPOSE_HTTP_TIMEOUT  = '300'
     }
 
     stages {
@@ -16,12 +14,12 @@ pipeline {
         // =========================
         stage('Checkout Code') {
             steps {
-                git branch: 'master', url: 'https://github.com/krihnan/Jenkins-Project.git'
+                git branch: 'master', url: ''
             }
         }
 
         // =========================
-        // Frontend Build
+        // Build Frontend Image
         // =========================
         stage('Frontend - Build Docker Image') {
             steps {
@@ -32,7 +30,7 @@ pipeline {
         }
 
         // =========================
-        // Backend Build
+        // Build Backend Image
         // =========================
         stage('Backend - Build Docker Image') {
             steps {
@@ -54,62 +52,39 @@ pipeline {
         }
 
         // =========================
-        // Push Docker Images
+        // Push Images to Docker Hub
         // =========================
         stage('Push Docker Images') {
             steps {
-                retry(3) {
-                    sh "docker push ${FRONTEND_REPO}:${IMAGE_TAG}"
-                    sh "docker push ${BACKEND_REPO}:${IMAGE_TAG}"
+                sh """
+                docker push ${FRONTEND_REPO}:${IMAGE_TAG}
+                docker push ${BACKEND_REPO}:${IMAGE_TAG}
 
-                    sh "docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest"
-                    sh "docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest"
-                    sh "docker push ${FRONTEND_REPO}:latest"
-                    sh "docker push ${BACKEND_REPO}:latest"
-                }
+                docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest
+                docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest
+
+                docker push ${FRONTEND_REPO}:latest
+                docker push ${BACKEND_REPO}:latest
+                """
             }
         }
 
         // =========================
-        // Deploy Containers
+        // Deploy with Docker Compose
         // =========================
         stage('Deploy Containers') {
             steps {
-                script {
-                    // Stop old containers
-                    sh 'docker rm -f frontend-container || true'
-                    sh 'docker rm -f backend-container || true'
+                sh '''
+                # Stop existing containers
+                docker compose down || true
 
-                    // Pull latest images
-                    sh "docker pull ${FRONTEND_REPO}:latest || true"
-                    sh "docker pull ${BACKEND_REPO}:latest || true"
+                # Pull latest images
+                docker pull ${FRONTEND_REPO}:latest
+                docker pull ${BACKEND_REPO}:latest
 
-                    // Run backend container
-                    def backendRun = sh(
-                        script: """
-                            docker run -d --restart unless-stopped --name backend-container \
-                                -p 5000:8080 \
-                                ${BACKEND_REPO}:latest
-                        """,
-                        returnStatus: true
-                    )
-                    if (backendRun != 0) {
-                        error "Failed to start backend container!"
-                    }
-
-                    // Run frontend container
-                    def frontendRun = sh(
-                        script: """
-                            docker run -d --restart unless-stopped --name frontend-container \
-                                -p 3000:80 \
-                                ${FRONTEND_REPO}:latest
-                        """,
-                        returnStatus: true
-                    )
-                    if (frontendRun != 0) {
-                        error "Failed to start frontend container!"
-                    }
-                }
+                # Start everything with docker-compose.yml
+                docker compose up -d
+                '''
             }
         }
     }
