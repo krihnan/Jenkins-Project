@@ -6,7 +6,6 @@ pipeline {
         BACKEND_REPO  = 'navaneethakrishna/backend-app'
         IMAGE_TAG     = "${env.GIT_COMMIT.take(7)}"  // short commit hash
 
-        // Fix TLS handshake timeout issue
         DOCKER_CLIENT_TIMEOUT = '300'
         COMPOSE_HTTP_TIMEOUT  = '300'
     }
@@ -55,7 +54,7 @@ pipeline {
         }
 
         // =========================
-        // Push Docker Images (with retry)
+        // Push Docker Images
         // =========================
         stage('Push Docker Images') {
             steps {
@@ -63,7 +62,6 @@ pipeline {
                     sh "docker push ${FRONTEND_REPO}:${IMAGE_TAG}"
                     sh "docker push ${BACKEND_REPO}:${IMAGE_TAG}"
 
-                    // Also tag as 'latest'
                     sh "docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest"
                     sh "docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest"
                     sh "docker push ${FRONTEND_REPO}:latest"
@@ -77,27 +75,41 @@ pipeline {
         // =========================
         stage('Deploy Containers') {
             steps {
-                // Stop old containers
-                sh 'docker rm -f frontend-container || true'
-                sh 'docker rm -f backend-container || true'
+                script {
+                    // Stop old containers
+                    sh 'docker rm -f frontend-container || true'
+                    sh 'docker rm -f backend-container || true'
 
-                // Pull latest images
-                sh "docker pull ${FRONTEND_REPO}:latest"
-                sh "docker pull ${BACKEND_REPO}:latest"
+                    // Pull latest images
+                    sh "docker pull ${FRONTEND_REPO}:latest || true"
+                    sh "docker pull ${BACKEND_REPO}:latest || true"
 
-                // Start Backend (5000)
-                sh '''
-                docker run -d --name backend-container \
-                    -p 5000:8080 \
-                    ${BACKEND_REPO}:latest
-                '''
+                    // Run backend container
+                    def backendRun = sh(
+                        script: """
+                            docker run -d --restart unless-stopped --name backend-container \
+                                -p 5000:8080 \
+                                ${BACKEND_REPO}:latest
+                        """,
+                        returnStatus: true
+                    )
+                    if (backendRun != 0) {
+                        error "Failed to start backend container!"
+                    }
 
-                // Start Frontend (3000)
-                sh '''
-                docker run -d --name frontend-container \
-                    -p 3000:80 \
-                    ${FRONTEND_REPO}:latest
-                '''
+                    // Run frontend container
+                    def frontendRun = sh(
+                        script: """
+                            docker run -d --restart unless-stopped --name frontend-container \
+                                -p 3000:80 \
+                                ${FRONTEND_REPO}:latest
+                        """,
+                        returnStatus: true
+                    )
+                    if (frontendRun != 0) {
+                        error "Failed to start frontend container!"
+                    }
+                }
             }
         }
     }
