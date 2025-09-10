@@ -9,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: admin
       MYSQL_DATABASE: employee_management
     ports:
-      - "3307:3306"   # host:container → connect from Workbench using localhost:3307
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -23,7 +23,7 @@ services:
     container_name: mongo-container
     restart: always
     ports:
-      - "27018:27017"  # changed host port to avoid conflict
+      - "27018:27017"   # changed host port to avoid conflict
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -37,7 +37,7 @@ services:
     container_name: backend-container
     restart: always
     ports:
-      - "5001:8080"  # changed host port to avoid conflict
+      - "5001:8080"     # changed host port to avoid conflict
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_management
       SPRING_DATASOURCE_USERNAME: root
@@ -54,7 +54,7 @@ services:
     container_name: frontend-container
     restart: always
     ports:
-      - "8081:80"  # changed host port to avoid conflict
+      - "3001:80"       # changed host port to avoid conflict
     depends_on:
       - backend
 
