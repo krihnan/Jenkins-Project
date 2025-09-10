@@ -6,6 +6,7 @@ services:
     container_name: backend-container
     ports:
       - "5000:8080"
+    restart: always   # auto-restart if container crashes
     # environment:
     #   SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_management
     #   SPRING_DATASOURCE_USERNAME: root
@@ -20,6 +21,7 @@ services:
     container_name: frontend-container
     ports:
       - "3000:80"
+    restart: always
     depends_on:
       - backend
 
