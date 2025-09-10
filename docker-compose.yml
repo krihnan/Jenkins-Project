@@ -3,12 +3,13 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
+    container_name: mysql-container
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: admin
       MYSQL_DATABASE: employee_management
     ports:
-      - "3307:3306"   # host:container
+      - "3307:3306"   # host:container → connect from Workbench using localhost:3307
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -19,6 +20,7 @@ services:
 
   mongodb:
     image: mongo:6.0
+    container_name: mongo-container
     restart: always
     ports:
       - "27017:27017"
@@ -32,6 +34,7 @@ services:
 
   backend:
     image: navaneethakrishna/backend-app:latest
+    container_name: backend-container
     restart: always
     ports:
       - "5000:8080"
@@ -48,9 +51,10 @@ services:
 
   frontend:
     image: navaneethakrishna/frontend-app:latest
+    container_name: frontend-container
     restart: always
     ports:
-      - "3000:80"
+      - "8080:80"   # ✅ changed from 3000:80 → now runs on port 8080
     depends_on:
       - backend
 
