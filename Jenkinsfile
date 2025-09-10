@@ -5,6 +5,10 @@ pipeline {
         FRONTEND_REPO = 'navaneethakrishna/frontend-app'
         BACKEND_REPO  = 'navaneethakrishna/backend-app'
         IMAGE_TAG     = "${env.GIT_COMMIT.take(7)}"  // short commit hash
+
+        // Fix TLS handshake timeout issue
+        DOCKER_CLIENT_TIMEOUT = '300'
+        COMPOSE_HTTP_TIMEOUT  = '300'
     }
 
     stages {
@@ -51,18 +55,20 @@ pipeline {
         }
 
         // =========================
-        // Push Docker Images
+        // Push Docker Images (with retry)
         // =========================
         stage('Push Docker Images') {
             steps {
-                sh "docker push ${FRONTEND_REPO}:${IMAGE_TAG}"
-                sh "docker push ${BACKEND_REPO}:${IMAGE_TAG}"
+                retry(3) {
+                    sh "docker push ${FRONTEND_REPO}:${IMAGE_TAG}"
+                    sh "docker push ${BACKEND_REPO}:${IMAGE_TAG}"
 
-                // Also tag as 'latest'
-                sh "docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest"
-                sh "docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest"
-                sh "docker push ${FRONTEND_REPO}:latest"
-                sh "docker push ${BACKEND_REPO}:latest"
+                    // Also tag as 'latest'
+                    sh "docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest"
+                    sh "docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest"
+                    sh "docker push ${FRONTEND_REPO}:latest"
+                    sh "docker push ${BACKEND_REPO}:latest"
+                }
             }
         }
 
