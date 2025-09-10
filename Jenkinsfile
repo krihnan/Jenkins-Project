@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -6,6 +5,7 @@ pipeline {
         FRONTEND_REPO = 'navaneethakrishna/frontend-app'
         BACKEND_REPO  = 'navaneethakrishna/backend-app'
         IMAGE_TAG     = "${env.GIT_COMMIT.take(7)}"  // short commit hash
+        PROJECT_NAME  = "jenkins-integration"        // docker compose project name
     }
 
     stages {
@@ -75,15 +75,15 @@ pipeline {
         stage('Deploy Containers') {
             steps {
                 sh '''
-                # Stop existing containers
-                docker compose down || true
+                # Stop & clean old containers
+                docker compose -p ${PROJECT_NAME} down --volumes --remove-orphans || true
 
                 # Pull latest images
                 docker pull ${FRONTEND_REPO}:latest
                 docker pull ${BACKEND_REPO}:latest
 
-                # Start everything with docker-compose.yml
-                docker compose up -d
+                # Start containers with project name
+                docker compose -p ${PROJECT_NAME} up -d
                 '''
             }
         }
