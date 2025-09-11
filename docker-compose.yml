@@ -6,7 +6,7 @@ services:
     container_name: mysql-container
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: navin
       MYSQL_DATABASE: employee_management
     ports:
       - "3307:3306"
@@ -41,7 +41,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_management
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_DATASOURCE_PASSWORD: navin
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/employee_management
     depends_on:
       mysql:
