@@ -1,3 +1,4 @@
+
 version: '3.8'
 
 services:
@@ -9,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: navin
       MYSQL_DATABASE: employee_management
     ports:
-      - "3307:3306"
+      - "3307:3306"   # host:container → connect from Workbench using localhost:3307
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -23,10 +24,11 @@ services:
     container_name: mongo-container
     restart: always
     ports:
-      - "27018:27017"   # changed host port to avoid conflict
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
+      # ✅ using mongosh instead of mongo (mongo removed in MongoDB 6+)
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
@@ -37,7 +39,7 @@ services:
     container_name: backend-container
     restart: always
     ports:
-      - "5001:8080"     # changed host port to avoid conflict
+      - "5000:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_management
       SPRING_DATASOURCE_USERNAME: root
@@ -54,7 +56,7 @@ services:
     container_name: frontend-container
     restart: always
     ports:
-      - "3001:80"       # changed host port to avoid conflict
+      - "3000:80"
     depends_on:
       - backend
 
