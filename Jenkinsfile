@@ -4,7 +4,7 @@ pipeline {
     environment {
         FRONTEND_REPO = 'navaneethakrishna/frontend-app'
         BACKEND_REPO  = 'navaneethakrishna/backend-app'
-        IMAGE_TAG     = "${env.GIT_COMMIT.take(7)}"  // short commit hash
+        IMAGE_TAG     = "${env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'latest'}" // short commit hash or fallback
     }
 
     stages {
@@ -40,16 +40,18 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                sh """
-                docker push ${FRONTEND_REPO}:${IMAGE_TAG}
-                docker push ${BACKEND_REPO}:${IMAGE_TAG}
+                script {
+                    sh """
+                    docker push ${FRONTEND_REPO}:${IMAGE_TAG}
+                    docker push ${BACKEND_REPO}:${IMAGE_TAG}
 
-                docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest
-                docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest
+                    docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_REPO}:latest
+                    docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_REPO}:latest
 
-                docker push ${FRONTEND_REPO}:latest
-                docker push ${BACKEND_REPO}:latest
-                """
+                    docker push ${FRONTEND_REPO}:latest
+                    docker push ${BACKEND_REPO}:latest
+                    """
+                }
             }
         }
 
@@ -66,10 +68,22 @@ pipeline {
                 docker pull ${FRONTEND_REPO}:latest
                 docker pull ${BACKEND_REPO}:latest
 
-                # Start everything with docker-compose
+                # Start everything with docker-compose (remove 'version' from docker-compose.yml)
                 docker compose up -d --remove-orphans
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful!"
+        }
+        failure {
+            echo "❌ Deployment failed, check logs!"
+        }
+        always {
+            echo "🧹 Cleanup not needed, but you can add docker system prune if required."
         }
     }
 }
